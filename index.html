@@ -4,7 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>반납로봇 검수기 Pro</title>
-  <!-- 고속 QR 디코더 라이브러리 -->
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     :root {
@@ -31,34 +30,20 @@
     }
     .app-title { font-size: 19px; font-weight: 800; letter-spacing: -0.5px; }
     .status-badge {
-      font-size: 12px; padding: 4px 10px; border-radius: 99px;
-      background: rgba(56, 189, 248, 0.15); color: var(--accent); font-weight: 600;
+      font-size: 12px; padding: 5px 12px; border-radius: 99px;
+      background: rgba(56, 189, 248, 0.15); color: var(--accent); font-weight: 700;
     }
 
-    /* 뷰파인더 컨테이너 */
+    /* 뷰파인더 래퍼 */
     #scanner-wrapper {
       position: relative; width: 100%; max-width: 480px; margin: 0 auto;
       border-radius: 18px; overflow: hidden; background: #000;
-      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
       border: 1px solid var(--border);
     }
     #reader { width: 100%; }
 
-    /* 타겟 스캔 가이드 라인 */
-    .scan-guide-overlay {
-      position: absolute; top: 0; left: 0; right: 0; bottom: 0;
-      pointer-events: none; display: flex; align-items: center; justify-content: center;
-    }
-    .scan-reticle {
-      width: 65%; aspect-ratio: 1; border: 2px solid rgba(56, 189, 248, 0.4);
-      border-radius: 16px; position: relative;
-    }
-    .scan-reticle::before {
-      content: ''; position: absolute; inset: -2px; border: 2px solid var(--accent);
-      border-radius: 16px; clip-path: polygon(0 0, 20% 0, 20% 100%, 0 100%);
-    }
-
-    /* 카메라 조작 바 (줌, 플래시) */
+    /* 카메라 툴바 (줌 & 플래시) */
     .camera-tools {
       max-width: 480px; margin: 10px auto 0; width: 100%;
       display: flex; gap: 8px; align-items: center;
@@ -69,40 +54,36 @@
     }
     .btn-zoom {
       flex: 1; border: none; background: transparent; color: var(--text-sub);
-      font-size: 14px; font-weight: 700; padding: 8px 0; border-radius: 8px; cursor: pointer;
+      font-size: 14px; font-weight: 700; padding: 10px 0; border-radius: 8px; cursor: pointer;
     }
     .btn-zoom.active { background: #334155; color: #fff; }
     .btn-tool {
       border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main);
-      border-radius: 12px; width: 44px; height: 44px; display: flex;
-      align-items: center; justify-content: center; font-size: 18px; cursor: pointer;
+      border-radius: 12px; width: 48px; height: 48px; display: flex;
+      align-items: center; justify-content: center; font-size: 20px; cursor: pointer;
     }
     .btn-tool.active { background: #eab308; border-color: #eab308; color: #000; }
 
-    /* 수동 입력 바 */
+    /* 수동 입력 바 (큰 버튼) */
     .manual-box {
       max-width: 480px; margin: 12px auto 0; width: 100%; display: flex; gap: 8px;
     }
     .manual-input {
-      flex: 1; height: 50px; padding: 0 16px; border-radius: 12px;
+      flex: 1; height: 52px; padding: 0 16px; border-radius: 12px;
       border: 1px solid var(--border); background: var(--card-bg);
       color: #fff; font-size: 15px; outline: none;
     }
     .manual-input:focus { border-color: var(--accent); }
     .btn-search {
-      height: 50px; padding: 0 20px; border-radius: 12px;
+      height: 52px; padding: 0 22px; border-radius: 12px;
       border: none; background: #2563eb; color: #fff;
-      font-size: 15px; font-weight: 700; cursor: pointer;
+      font-size: 16px; font-weight: 700; cursor: pointer;
     }
 
-    /* 결과 출력 카드 */
+    /* 결과 카드 */
     #result-card {
       max-width: 480px; margin: 14px auto; width: 100%; padding: 18px;
-      border-radius: 16px; display: none; animation: popIn 0.25s ease-out;
-    }
-    @keyframes popIn {
-      from { transform: scale(0.95); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+      border-radius: 16px; display: none;
     }
     .card-success { background: #064e3b; border: 2px solid var(--success); }
     .card-danger { background: #450a0a; border: 2px solid var(--danger); }
@@ -113,18 +94,15 @@
       display: flex; justify-content: space-between; align-items: center;
     }
     .info-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-    .info-item {
-      background: rgba(0, 0, 0, 0.25); padding: 8px 10px; border-radius: 8px;
-    }
+    .info-item { background: rgba(0, 0, 0, 0.25); padding: 8px 10px; border-radius: 8px; }
     .info-item.full { grid-column: span 2; }
     .info-label { font-size: 11px; color: #cbd5e1; font-weight: 500; }
     .info-value { font-size: 14px; font-weight: 700; margin-top: 2px; word-break: break-all; }
 
-    /* 대형 액션 버튼 */
     .btn-large {
       width: 100%; height: 54px; border: none; border-radius: 12px;
       font-size: 16px; font-weight: 800; color: #fff; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
+      display: flex; align-items: center; justify-content: center;
       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
     }
     .btn-next { background: var(--success); }
@@ -134,20 +112,17 @@
 <body>
 
   <div class="app-header">
-    <div class="app-title">📦 반납로봇 스마트 검수</div>
+    <div class="app-title">📦 반납로봇 검수기 Pro</div>
     <div class="status-badge" id="scan-status">카메라 준비중</div>
   </div>
 
   <div id="scanner-wrapper">
     <div id="reader"></div>
-    <div class="scan-guide-overlay">
-      <div class="scan-reticle"></div>
-    </div>
   </div>
 
-  <!-- 줌 & 플래시 조작 툴바 -->
+  <!-- 줌 & 플래시 툴바 (기기 지원 시 표시) -->
   <div class="camera-tools" id="camera-tools">
-    <div class="zoom-group">
+    <div class="zoom-group" id="zoom-group">
       <button class="btn-zoom active" onclick="applyZoom(1, this)">1x</button>
       <button class="btn-zoom" onclick="applyZoom(2, this)">2x</button>
       <button class="btn-zoom" onclick="applyZoom(3, this)">3x</button>
@@ -165,8 +140,8 @@
   <div id="result-card"></div>
 
   <script>
-    // [중요] 준호님의 Apps Script 배포 URL을 입력하세요.
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxWffRnlKqu0EczzxSUmWelY6csP_U2euGyBIVLahlCP6ZrjG5s_-KCJiHb5cMgpJYgCw/exec";
+    // [중요] 준호님의 Apps Script 배포 URL
+    const SCRIPT_URL = "여기에_APPS_SCRIPT_웹앱_URL_입력";
 
     let html5QrCode;
     let isProcessing = false;
@@ -174,7 +149,6 @@
     let trackCapabilities = null;
     let isTorchOn = false;
 
-    // 비프 사운드 피드백
     function playBeep(isSuccess) {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -183,18 +157,17 @@
         osc.connect(gain);
         gain.connect(ctx.destination);
         if (isSuccess) {
-          osc.frequency.setValueAtTime(1174.66, ctx.currentTime); // D6
+          osc.frequency.setValueAtTime(1174.66, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
           osc.start(); osc.stop(ctx.currentTime + 0.15);
         } else {
-          osc.frequency.setValueAtTime(329.63, ctx.currentTime); // E4
+          osc.frequency.setValueAtTime(329.63, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
           osc.start(); osc.stop(ctx.currentTime + 0.3);
         }
       } catch (e) {}
     }
 
-    // 서버 검수 요청
     function checkMac(scannedText) {
       if (isProcessing) return;
       isProcessing = true;
@@ -269,22 +242,24 @@
       checkMac(val);
     }
 
-    // 줌 조절 로직 (하드웨어 줌 지원 시)
+    // 줌 조절 (기기 하드웨어 줌)
     function applyZoom(zoomFactor, btn) {
+      if (!videoTrack || !trackCapabilities || !trackCapabilities.zoom) return;
       document.querySelectorAll('.btn-zoom').forEach(b => b.classList.remove('active'));
       if (btn) btn.classList.add('active');
 
-      if (videoTrack && trackCapabilities && trackCapabilities.zoom) {
-        const targetZoom = Math.min(Math.max(zoomFactor, trackCapabilities.zoom.min), trackCapabilities.zoom.max);
-        videoTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] }).catch(() => {});
-      }
+      const minZoom = trackCapabilities.zoom.min || 1;
+      const maxZoom = trackCapabilities.zoom.max || 5;
+      const targetZoom = Math.min(Math.max(zoomFactor, minZoom), maxZoom);
+
+      videoTrack.applyConstraints({
+        advanced: [{ zoom: targetZoom }]
+      }).catch(err => console.log('줌 적용 오류:', err));
     }
 
-    // 플래시 켜기/끄기
+    // 플래시 토글
     function toggleTorch() {
-      if (!videoTrack || !trackCapabilities || !trackCapabilities.torch) {
-        return alert('이 기기는 플래시 제어를 지원하지 않습니다.');
-      }
+      if (!videoTrack || !trackCapabilities || !trackCapabilities.torch) return;
       isTorchOn = !isTorchOn;
       videoTrack.applyConstraints({ advanced: [{ torch: isTorchOn }] })
         .then(() => {
@@ -293,52 +268,76 @@
         .catch(() => {});
     }
 
-    // 스캐너 초기화 및 고해상도(1080p) 강제 바인딩
-    window.addEventListener('DOMContentLoaded', () => {
+    // 카메라 초기화 및 구동 (가장 안정적인 방식)
+    async function startScanner() {
       html5QrCode = new Html5Qrcode("reader");
-
-      const cameraConfig = {
-        facingMode: "environment",
-        // 멀리 있는 작은 QR 인식을 위한 고해상도 1080p 강제 설정
-        width: { min: 1280, ideal: 1920 },
-        height: { min: 720, ideal: 1080 }
-      };
 
       const scanConfig = {
         fps: 15,
-        qrbox: (w, h) => {
-          const size = Math.floor(Math.min(w, h) * 0.72);
+        qrbox: function(w, h) {
+          const size = Math.floor(Math.min(w, h) * 0.75);
           return { width: size, height: size };
         },
-        experimentalFeatures: {
-          useBarCodeDetectorIfSupported: true // 네이티브 고속 하드웨어 바코드 엔진
-        }
+        aspectRatio: 1.0
       };
 
-      html5QrCode.start(
-        cameraConfig,
-        scanConfig,
-        (decodedText) => checkMac(decodedText),
-        () => {}
-      ).then(() => {
-        document.getElementById('scan-status').innerText = '스캔 대기 중';
-        
-        // 카메라 하드웨어 역량(줌, 토치) 획득
+      try {
+        // 후면 카메라 우선 구동
+        await html5QrCode.start(
+          { facingMode: "environment" },
+          scanConfig,
+          (decodedText) => checkMac(decodedText),
+          () => {}
+        );
+        onCameraSuccess();
+      } catch (err) {
+        console.warn("후면 1차 진입 실패, 2차 카메라 탐색 시도:", err);
+        try {
+          const cameras = await Html5Qrcode.getCameras();
+          if (cameras && cameras.length) {
+            const backCam = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear') || c.label.toLowerCase().includes('환경')) || cameras[cameras.length - 1];
+            await html5QrCode.start(
+              backCam.id,
+              scanConfig,
+              (decodedText) => checkMac(decodedText),
+              () => {}
+            );
+            onCameraSuccess();
+          } else {
+            throw new Error("카메라를 찾을 수 없습니다.");
+          }
+        } catch (finalErr) {
+          document.getElementById('scan-status').innerText = '카메라 에러';
+          alert("카메라 실행 실패:\n기본 브라우저(크롬/삼성인터넷/사파리)에서 열려있는지, 카메라 권한이 허용되어 있는지 확인해주세요.");
+        }
+      }
+    }
+
+    function onCameraSuccess() {
+      document.getElementById('scan-status').innerText = '스캔 대기 중';
+      
+      // 줌/플래시 하드웨어 역량 바인딩
+      try {
         const videoElem = document.querySelector("#reader video");
         if (videoElem && videoElem.srcObject) {
-          videoTrack = videoElem.srcObject.getVideoTracks()[0];
-          if (videoTrack && videoTrack.getCapabilities) {
-            trackCapabilities = videoTrack.getCapabilities();
-            if (!trackCapabilities.torch) {
-              document.getElementById('btn-torch').style.opacity = '0.3';
+          const tracks = videoElem.srcObject.getVideoTracks();
+          if (tracks.length > 0) {
+            videoTrack = tracks[0];
+            if (videoTrack.getCapabilities) {
+              trackCapabilities = videoTrack.getCapabilities();
+              if (!trackCapabilities.zoom) document.getElementById('zoom-group').style.display = 'none';
+              if (!trackCapabilities.torch) document.getElementById('btn-torch').style.display = 'none';
+            } else {
+              document.getElementById('camera-tools').style.display = 'none';
             }
           }
         }
-      }).catch(err => {
-        document.getElementById('scan-status').innerText = '카메라 오류';
-        console.warn("카메라 초기화 실패:", err);
-      });
-    });
+      } catch (e) {
+        document.getElementById('camera-tools').style.display = 'none';
+      }
+    }
+
+    window.addEventListener('DOMContentLoaded', startScanner);
   </script>
 </body>
 </html>
