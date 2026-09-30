@@ -3,145 +3,201 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>반납로봇 검수기 Pro</title>
+  <title>반납로봇 검수 PDA</title>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --border: #334155;
-      --accent: #38bdf8;
-      --success: #10b981;
-      --danger: #ef4444;
-      --text-main: #f8fafc;
-      --text-sub: #94a3b8;
+      --primary: #0070f3;
+      --success: #059669;
+      --success-bg: #ecfdf5;
+      --danger: #dc2626;
+      --danger-bg: #fef2f2;
+      --bg: #f3f4f6;
+      --card-bg: #ffffff;
+      --text-main: #111827;
+      --text-sub: #6b7280;
+      --border: #e5e7eb;
     }
 
     * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, "Pretendard", "Segoe UI", Roboto, sans-serif;
-      margin: 0; padding: 12px; background: var(--bg); color: var(--text-main);
-      min-height: 100vh; display: flex; flex-direction: column;
+      margin: 0; padding: 0; background: var(--bg); color: var(--text-main);
+      min-height: 100vh; display: flex; flex-direction: column; overflow-x: hidden;
     }
 
-    .app-header {
+    /* 상단 앱 헤더 */
+    .top-bar {
       display: flex; justify-content: space-between; align-items: center;
-      padding: 6px 4px 12px;
+      padding: 12px 16px; background: #ffffff; border-bottom: 1px solid var(--border);
     }
-    .app-title { font-size: 19px; font-weight: 800; letter-spacing: -0.5px; }
-    .status-badge {
-      font-size: 12px; padding: 5px 12px; border-radius: 99px;
-      background: rgba(56, 189, 248, 0.15); color: var(--accent); font-weight: 700;
+    .brand-title {
+      font-size: 17px; font-weight: 800; display: flex; align-items: center; gap: 6px;
+    }
+    .status-pill {
+      font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 99px;
+      background: #e0f2fe; color: #0284c7; display: flex; align-items: center; gap: 4px;
+    }
+    .status-dot { width: 6px; height: 6px; border-radius: 50%; background: #0284c7; }
+
+    /* 메인 컨테이너 */
+    .main-content {
+      flex: 1; padding: 14px; max-width: 520px; width: 100%; margin: 0 auto;
+      display: flex; flex-direction: column; gap: 12px;
     }
 
-    /* 뷰파인더 래퍼 */
-    #scanner-wrapper {
-      position: relative; width: 100%; max-width: 480px; margin: 0 auto;
-      border-radius: 18px; overflow: hidden; background: #000;
-      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-      border: 1px solid var(--border);
+    /* 카메라 뷰파인더 */
+    .scanner-card {
+      position: relative; width: 100%; aspect-ratio: 1 / 1;
+      border-radius: 20px; overflow: hidden; background: #000;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15);
     }
-    #reader { width: 100%; }
+    #reader { width: 100%; height: 100%; }
 
-    /* 카메라 툴바 (줌 & 플래시) */
-    .camera-tools {
-      max-width: 480px; margin: 10px auto 0; width: 100%;
-      display: flex; gap: 8px; align-items: center;
+    /* 카메라 위 플로팅 컨트롤 (줌 & 라이트) */
+    .floating-tools {
+      position: absolute; bottom: 14px; left: 0; right: 0;
+      display: flex; justify-content: center; gap: 8px; z-index: 10;
+      padding: 0 16px; pointer-events: none;
     }
-    .zoom-group {
-      display: flex; flex: 1; background: var(--card-bg); border: 1px solid var(--border);
-      border-radius: 12px; padding: 4px; gap: 4px;
+    .tool-pill {
+      pointer-events: auto; display: flex; background: rgba(0, 0, 0, 0.65);
+      backdrop-filter: blur(8px); border-radius: 99px; padding: 4px; gap: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.15);
     }
     .btn-zoom {
-      flex: 1; border: none; background: transparent; color: var(--text-sub);
-      font-size: 14px; font-weight: 700; padding: 10px 0; border-radius: 8px; cursor: pointer;
+      border: none; background: transparent; color: #cbd5e1;
+      font-size: 13px; font-weight: 700; padding: 6px 14px; border-radius: 99px; cursor: pointer;
     }
-    .btn-zoom.active { background: #334155; color: #fff; }
-    .btn-tool {
-      border: 1px solid var(--border); background: var(--card-bg); color: var(--text-main);
-      border-radius: 12px; width: 48px; height: 48px; display: flex;
-      align-items: center; justify-content: center; font-size: 20px; cursor: pointer;
+    .btn-zoom.active { background: #ffffff; color: #000000; }
+    .btn-torch {
+      pointer-events: auto; width: 38px; height: 38px; border-radius: 50%;
+      background: rgba(0, 0, 0, 0.65); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.15); color: #fff;
+      display: flex; align-items: center; justify-content: center; font-size: 16px; cursor: pointer;
     }
-    .btn-tool.active { background: #eab308; border-color: #eab308; color: #000; }
+    .btn-torch.active { background: #fbbf24; border-color: #fbbf24; color: #000; }
 
-    /* 수동 입력 바 (큰 버튼) */
-    .manual-box {
-      max-width: 480px; margin: 12px auto 0; width: 100%; display: flex; gap: 8px;
+    /* 수동 입력 필드 */
+    .manual-strip {
+      display: flex; gap: 8px; background: #fff; padding: 6px;
+      border-radius: 14px; border: 1px solid var(--border);
     }
     .manual-input {
-      flex: 1; height: 52px; padding: 0 16px; border-radius: 12px;
-      border: 1px solid var(--border); background: var(--card-bg);
-      color: #fff; font-size: 15px; outline: none;
+      flex: 1; border: none; outline: none; padding: 8px 12px;
+      font-size: 14px; font-weight: 500; background: transparent;
     }
-    .manual-input:focus { border-color: var(--accent); }
-    .btn-search {
-      height: 52px; padding: 0 22px; border-radius: 12px;
-      border: none; background: #2563eb; color: #fff;
-      font-size: 16px; font-weight: 700; cursor: pointer;
+    .btn-manual-search {
+      border: none; background: #111827; color: #fff; font-size: 14px;
+      font-weight: 700; padding: 0 16px; border-radius: 10px; cursor: pointer;
     }
 
-    /* 결과 카드 */
-    #result-card {
-      max-width: 480px; margin: 14px auto; width: 100%; padding: 18px;
-      border-radius: 16px; display: none;
+    /* 슬라이드형 바텀시트 오버레이 */
+    .bottom-sheet-overlay {
+      position: fixed; inset: 0; background: rgba(0, 0, 0, 0.5);
+      backdrop-filter: blur(4px); z-index: 90; opacity: 0; pointer-events: none;
+      transition: opacity 0.25s ease;
     }
-    .card-success { background: #064e3b; border: 2px solid var(--success); }
-    .card-danger { background: #450a0a; border: 2px solid var(--danger); }
-    .card-loading { background: #1e293b; border: 2px solid var(--accent); }
+    .bottom-sheet-overlay.show { opacity: 1; pointer-events: auto; }
 
-    .card-title {
-      font-size: 18px; font-weight: 800; margin-bottom: 12px;
-      display: flex; justify-content: space-between; align-items: center;
+    .bottom-sheet {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: #ffffff; border-radius: 24px 24px 0 0;
+      padding: 16px 20px 28px; z-index: 100;
+      transform: translateY(105%); transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.2); max-width: 540px; margin: 0 auto;
     }
-    .info-list { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 14px; }
-    .info-item { background: rgba(0, 0, 0, 0.25); padding: 8px 10px; border-radius: 8px; }
-    .info-item.full { grid-column: span 2; }
-    .info-label { font-size: 11px; color: #cbd5e1; font-weight: 500; }
-    .info-value { font-size: 14px; font-weight: 700; margin-top: 2px; word-break: break-all; }
+    .bottom-sheet.show { transform: translateY(0); }
 
-    .btn-large {
-      width: 100%; height: 54px; border: none; border-radius: 12px;
-      font-size: 16px; font-weight: 800; color: #fff; cursor: pointer;
-      display: flex; align-items: center; justify-content: center;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    .sheet-handle {
+      width: 44px; height: 5px; background: #e5e7eb; border-radius: 99px;
+      margin: 0 auto 16px;
     }
-    .btn-next { background: var(--success); }
-    .btn-retry { background: var(--danger); }
+
+    /* 바텀시트 내부 정보 스타일 */
+    .sheet-header {
+      display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;
+    }
+    .sheet-status-badge {
+      display: inline-flex; align-items: center; gap: 6px; font-size: 15px; font-weight: 800;
+      padding: 6px 12px; border-radius: 8px;
+    }
+    .badge-match { background: var(--success-bg); color: var(--success); }
+    .badge-nomatch { background: var(--danger-bg); color: var(--danger); }
+    
+    .sheet-row-tag {
+      font-size: 13px; font-weight: 700; background: #f3f4f6;
+      color: #374151; padding: 4px 10px; border-radius: 6px;
+    }
+
+    .data-grid {
+      display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 18px;
+    }
+    .grid-cell {
+      background: #f9fafb; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+    }
+    .grid-cell.full { grid-column: span 2; }
+    .cell-title { font-size: 11px; font-weight: 600; color: var(--text-sub); }
+    .cell-data { font-size: 15px; font-weight: 800; color: var(--text-main); margin-top: 3px; word-break: break-all; }
+    .cell-data.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--primary); }
+
+    /* 대형 버튼 */
+    .btn-bottom-action {
+      width: 100%; height: 56px; border: none; border-radius: 14px;
+      font-size: 17px; font-weight: 800; color: #ffffff; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.12);
+    }
+    .btn-bottom-action.btn-next { background: var(--success); }
+    .btn-bottom-action.btn-retry { background: var(--danger); }
   </style>
 </head>
 <body>
 
-  <div class="app-header">
-    <div class="app-title">📦 반납로봇 검수기 Pro</div>
-    <div class="status-badge" id="scan-status">카메라 준비중</div>
-  </div>
-
-  <div id="scanner-wrapper">
-    <div id="reader"></div>
-  </div>
-
-  <!-- 줌 & 플래시 툴바 (기기 지원 시 표시) -->
-  <div class="camera-tools" id="camera-tools">
-    <div class="zoom-group" id="zoom-group">
-      <button class="btn-zoom active" onclick="applyZoom(1, this)">1x</button>
-      <button class="btn-zoom" onclick="applyZoom(2, this)">2x</button>
-      <button class="btn-zoom" onclick="applyZoom(3, this)">3x</button>
+  <!-- 상단 상태바 -->
+  <header class="top-bar">
+    <div class="brand-title">📦 반납로봇 검수 Pro</div>
+    <div class="status-pill" id="global-status">
+      <div class="status-dot"></div>
+      <span id="status-text">준비 중</span>
     </div>
-    <button class="btn-tool" id="btn-torch" onclick="toggleTorch()">🔦</button>
-  </div>
+  </header>
 
-  <!-- 수동 검색 바 -->
-  <div class="manual-box">
-    <input type="text" id="manualInput" class="manual-input" placeholder="MAC 번호 직접 입력">
-    <button class="btn-search" onclick="handleManualSearch()">검색</button>
-  </div>
+  <main class="main-content">
+    <!-- 카메라 뷰파인더 영역 -->
+    <div class="scanner-card">
+      <div id="reader"></div>
 
-  <!-- 스캔 결과 표시 영역 -->
-  <div id="result-card"></div>
+      <!-- 카메라 플로팅 컨트롤 바 -->
+      <div class="floating-tools" id="floating-tools">
+        <div class="tool-pill" id="zoom-pill">
+          <button class="btn-zoom active" onclick="applyZoom(1, this)">1x</button>
+          <button class="btn-zoom" onclick="applyZoom(2, this)">2x</button>
+          <button class="btn-zoom" onclick="applyZoom(3, this)">3x</button>
+        </div>
+        <button class="btn-torch" id="btn-torch" onclick="toggleTorch()">🔦</button>
+      </div>
+    </div>
+
+    <!-- 수동 검색 바 -->
+    <div class="manual-strip">
+      <input type="text" id="manualInput" class="manual-input" placeholder="직접 검색할 MAC 번호 입력">
+      <button class="btn-manual-search" onclick="handleManualSearch()">검색</button>
+    </div>
+  </main>
+
+  <!-- 바텀시트 딤 배경 (터치 시 닫기) -->
+  <div class="bottom-sheet-overlay" id="sheet-overlay" onclick="closeSheet()"></div>
+
+  <!-- 슬라이드업 바텀시트 결과창 -->
+  <div class="bottom-sheet" id="bottom-sheet">
+    <div class="sheet-handle"></div>
+    <div id="sheet-content"></div>
+  </div>
 
   <script>
-    // [중요] 준호님의 Apps Script 배포 URL
-    const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzAvzkYoE7em3T2DzFiDoDO2asxeXFuz9LsZkitCBIpV0TchZA2ghlDO2TDdEv5D8GAfw/exec";
+    // [중요] 사용 중인 Apps Script 배포 URL
+    const SCRIPT_URL = "여기에_APPS_SCRIPT_웹앱_URL_입력";
 
     let html5QrCode;
     let isProcessing = false;
@@ -149,6 +205,7 @@
     let trackCapabilities = null;
     let isTorchOn = false;
 
+    // 사운드 피드백
     function playBeep(isSuccess) {
       try {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -157,92 +214,98 @@
         osc.connect(gain);
         gain.connect(ctx.destination);
         if (isSuccess) {
-          osc.frequency.setValueAtTime(1174.66, ctx.currentTime);
+          osc.frequency.setValueAtTime(1200, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
           osc.start(); osc.stop(ctx.currentTime + 0.15);
         } else {
-          osc.frequency.setValueAtTime(329.63, ctx.currentTime);
+          osc.frequency.setValueAtTime(350, ctx.currentTime);
           gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.3);
           osc.start(); osc.stop(ctx.currentTime + 0.3);
         }
       } catch (e) {}
     }
 
+    // 서버 검수 호출
     function checkMac(scannedText) {
       if (isProcessing) return;
       isProcessing = true;
 
-      if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+      if (navigator.vibrate) navigator.vibrate([70, 50, 70]);
 
-      document.getElementById('scan-status').innerText = '검수 중...';
-      const card = document.getElementById('result-card');
-      card.className = 'card-loading';
-      card.style.display = 'block';
-      card.innerHTML = `
-        <div class="card-title">🔍 시트 대조 중...</div>
-        <div style="font-size:14px; color:#cbd5e1;">스캔값: <b>${scannedText}</b></div>
-      `;
+      document.getElementById('status-text').innerText = '시트 대조 중...';
 
       fetch(`${SCRIPT_URL}?mac=${encodeURIComponent(scannedText)}`)
         .then(res => res.json())
         .then(res => {
           if (res.found) {
             playBeep(true);
-            document.getElementById('scan-status').innerText = '일치 확인';
-            card.className = 'card-success';
-            card.innerHTML = `
-              <div class="card-title">
-                <span>✅ 리스트 일치</span>
-                <span style="font-size:14px; background:rgba(0,0,0,0.3); padding:4px 10px; border-radius:6px;">시트 ${res.row}행</span>
-              </div>
-              <div class="info-list">
-                <div class="info-item"><div class="info-label">NO</div><div class="info-value">${res.data.no}</div></div>
-                <div class="info-item"><div class="info-label">모델</div><div class="info-value">${res.data.model}</div></div>
-                <div class="info-item full"><div class="info-label">자산번호</div><div class="info-value">${res.data.assetNo || '-'}</div></div>
-                <div class="info-item full"><div class="info-label">관리번호</div><div class="info-value">${res.data.manageNo || '-'}</div></div>
-                <div class="info-item full"><div class="info-label">MAC 주소</div><div class="info-value" style="color:var(--accent);">${res.data.mac}</div></div>
-              </div>
-              <button class="btn-large btn-next" onclick="resumeScanning()">▶ 다음 기기 스캔하기</button>
-            `;
+            showBottomSheet(true, res, scannedText);
           } else {
             playBeep(false);
-            document.getElementById('scan-status').innerText = '미등록 기기';
-            card.className = 'card-danger';
-            card.innerHTML = `
-              <div class="card-title">❌ 미등록 기기</div>
-              <div style="margin-bottom:12px; font-size:14px;">${res.message}</div>
-              <div class="info-item full" style="margin-bottom:14px;">
-                <div class="info-label">스캔된 값</div>
-                <div class="info-value">${scannedText}</div>
-              </div>
-              <button class="btn-large btn-retry" onclick="resumeScanning()">↺ 다시 스캔</button>
-            `;
+            showBottomSheet(false, res, scannedText);
           }
         })
         .catch(err => {
-          card.className = 'card-danger';
-          card.innerHTML = `
-            <div class="card-title">⚠️ 통신 에러</div>
-            <div style="margin-bottom:14px; font-size:14px;">${err.message}</div>
-            <button class="btn-large btn-retry" onclick="resumeScanning()">재시도</button>
-          `;
+          showBottomSheet(false, { message: '네트워크 연결 오류: ' + err.message }, scannedText);
         });
     }
 
-    function resumeScanning() {
-      document.getElementById('result-card').style.display = 'none';
+    // 바텀시트 띄우기
+    function showBottomSheet(isSuccess, res, rawText) {
+      const container = document.getElementById('sheet-content');
+
+      if (isSuccess) {
+        document.getElementById('status-text').innerText = '일치 완료';
+        container.innerHTML = `
+          <div class="sheet-header">
+            <div class="sheet-status-badge badge-match">✅ 리스트 일치 기기</div>
+            <div class="sheet-row-tag">시트 ${res.row}행</div>
+          </div>
+          <div class="data-grid">
+            <div class="grid-cell"><div class="cell-title">NO</div><div class="cell-data">${res.data.no}</div></div>
+            <div class="grid-cell"><div class="cell-title">모델명</div><div class="cell-data">${res.data.model}</div></div>
+            <div class="grid-cell full"><div class="cell-title">장비 상세</div><div class="cell-data">${res.data.detail || '-'}</div></div>
+            <div class="grid-cell"><div class="cell-title">자산번호</div><div class="cell-data">${res.data.assetNo || '-'}</div></div>
+            <div class="grid-cell"><div class="cell-title">관리번호</div><div class="cell-data">${res.data.manageNo || '-'}</div></div>
+            <div class="grid-cell full"><div class="cell-title">MAC 주소</div><div class="cell-data mono">${res.data.mac}</div></div>
+          </div>
+          <button class="btn-bottom-action btn-next" onclick="closeSheet()">▶ 다음 기기 스캔하기</button>
+        `;
+      } else {
+        document.getElementById('status-text').innerText = '미등록 기기';
+        container.innerHTML = `
+          <div class="sheet-header">
+            <div class="sheet-status-badge badge-nomatch">❌ 반납 리스트 없음</div>
+          </div>
+          <div style="font-size:14px; color:#4b5563; margin-bottom:12px;">${res.message || '시트에 등록되지 않은 기기입니다.'}</div>
+          <div class="grid-cell full" style="margin-bottom:18px;">
+            <div class="cell-title">스캔된 MAC 주소</div>
+            <div class="cell-data mono">${rawText}</div>
+          </div>
+          <button class="btn-bottom-action btn-retry" onclick="closeSheet()">다시 스캔하기</button>
+        `;
+      }
+
+      document.getElementById('sheet-overlay').classList.add('show');
+      document.getElementById('bottom-sheet').classList.add('show');
+    }
+
+    // 바텀시트 닫기 및 스캔 재개
+    function closeSheet() {
+      document.getElementById('sheet-overlay').classList.remove('show');
+      document.getElementById('bottom-sheet').classList.remove('show');
       document.getElementById('manualInput').value = '';
-      document.getElementById('scan-status').innerText = '스캔 대기 중';
+      document.getElementById('status-text').innerText = '스캔 대기 중';
       isProcessing = false;
     }
 
     function handleManualSearch() {
       const val = document.getElementById('manualInput').value.trim();
-      if (!val) return alert('MAC 번호를 입력해주세요.');
+      if (!val) return alert('MAC 번호를 입력하세요.');
       checkMac(val);
     }
 
-    // 줌 조절 (기기 하드웨어 줌)
+    // 줌 조절
     function applyZoom(zoomFactor, btn) {
       if (!videoTrack || !trackCapabilities || !trackCapabilities.zoom) return;
       document.querySelectorAll('.btn-zoom').forEach(b => b.classList.remove('active'));
@@ -252,9 +315,7 @@
       const maxZoom = trackCapabilities.zoom.max || 5;
       const targetZoom = Math.min(Math.max(zoomFactor, minZoom), maxZoom);
 
-      videoTrack.applyConstraints({
-        advanced: [{ zoom: targetZoom }]
-      }).catch(err => console.log('줌 적용 오류:', err));
+      videoTrack.applyConstraints({ advanced: [{ zoom: targetZoom }] }).catch(() => {});
     }
 
     // 플래시 토글
@@ -268,55 +329,37 @@
         .catch(() => {});
     }
 
-    // 카메라 초기화 및 구동 (가장 안정적인 방식)
+    // 카메라 구동
     async function startScanner() {
       html5QrCode = new Html5Qrcode("reader");
-
       const scanConfig = {
         fps: 15,
-        qrbox: function(w, h) {
-          const size = Math.floor(Math.min(w, h) * 0.75);
+        qrbox: (w, h) => {
+          const size = Math.floor(Math.min(w, h) * 0.72);
           return { width: size, height: size };
         },
         aspectRatio: 1.0
       };
 
       try {
-        // 후면 카메라 우선 구동
-        await html5QrCode.start(
-          { facingMode: "environment" },
-          scanConfig,
-          (decodedText) => checkMac(decodedText),
-          () => {}
-        );
-        onCameraSuccess();
+        await html5QrCode.start({ facingMode: "environment" }, scanConfig, (decodedText) => checkMac(decodedText), () => {});
+        bindCameraFeatures();
       } catch (err) {
-        console.warn("후면 1차 진입 실패, 2차 카메라 탐색 시도:", err);
         try {
           const cameras = await Html5Qrcode.getCameras();
           if (cameras && cameras.length) {
-            const backCam = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear') || c.label.toLowerCase().includes('환경')) || cameras[cameras.length - 1];
-            await html5QrCode.start(
-              backCam.id,
-              scanConfig,
-              (decodedText) => checkMac(decodedText),
-              () => {}
-            );
-            onCameraSuccess();
-          } else {
-            throw new Error("카메라를 찾을 수 없습니다.");
+            const backCam = cameras.find(c => c.label.toLowerCase().includes('back') || c.label.toLowerCase().includes('rear')) || cameras[cameras.length - 1];
+            await html5QrCode.start(backCam.id, scanConfig, (decodedText) => checkMac(decodedText), () => {});
+            bindCameraFeatures();
           }
-        } catch (finalErr) {
-          document.getElementById('scan-status').innerText = '카메라 에러';
-          alert("카메라 실행 실패:\n기본 브라우저(크롬/삼성인터넷/사파리)에서 열려있는지, 카메라 권한이 허용되어 있는지 확인해주세요.");
+        } catch (e) {
+          document.getElementById('status-text').innerText = '카메라 오류';
         }
       }
     }
 
-    function onCameraSuccess() {
-      document.getElementById('scan-status').innerText = '스캔 대기 중';
-      
-      // 줌/플래시 하드웨어 역량 바인딩
+    function bindCameraFeatures() {
+      document.getElementById('status-text').innerText = '스캔 대기 중';
       try {
         const videoElem = document.querySelector("#reader video");
         if (videoElem && videoElem.srcObject) {
@@ -325,15 +368,13 @@
             videoTrack = tracks[0];
             if (videoTrack.getCapabilities) {
               trackCapabilities = videoTrack.getCapabilities();
-              if (!trackCapabilities.zoom) document.getElementById('zoom-group').style.display = 'none';
+              if (!trackCapabilities.zoom) document.getElementById('zoom-pill').style.display = 'none';
               if (!trackCapabilities.torch) document.getElementById('btn-torch').style.display = 'none';
-            } else {
-              document.getElementById('camera-tools').style.display = 'none';
             }
           }
         }
       } catch (e) {
-        document.getElementById('camera-tools').style.display = 'none';
+        document.getElementById('floating-tools').style.display = 'none';
       }
     }
 
