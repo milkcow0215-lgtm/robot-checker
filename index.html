@@ -6,6 +6,15 @@
   <title>반납로봇 검수 PDA</title>
   <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
+    <!-- 매니페스트 연결 -->
+    <link rel="manifest" href="manifest.json">
+
+    <!-- 서비스 워커 등록 -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('./sw.js');
+      }
+    </script>
   <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
   <style>
     :root {
